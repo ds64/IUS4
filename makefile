@@ -78,6 +78,5 @@ test_serial : $(TEST_SERIAL_OBJ) makefile
 	$(CC) $(TEST_SERIAL_OBJ) -o test_serial.hex $(LFLAGS)
 	$(M3P) hb166 test_serial.hex test_serial.bin bye
 
-
 $(TEST_SERIAL_OBJ) : %.rel : %.c makefile
 	$(CC) -c $(CFLAGS) $< -o $@

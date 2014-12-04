@@ -1,0 +1,7 @@
+make
+rm SRC/*.asm
+rm SRC/*.rel
+rm SRC/*.rst
+rm SRC/*.sym
+rm SRC/*.lst
+rm *.txt
