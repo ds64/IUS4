@@ -44,3 +44,26 @@ void INIT_BUF(struct BUF * buffer)
     buffer->write_index = 0;
     buffer->count = 0;
 }
+
+unsigned char POP_FIFO(struct FIFO * fifo_buf)
+{
+    unsigned char c;
+    if(fifo_buf->end == fifo_buf->start)
+        return 0;
+    c = fifo_buf->buf[fifo_buf->start];
+    if(++fifo_buf->start > FIFOSIZE - 1)
+        fifo_buf->start = 0;
+    return c;
+}
+
+void PUSH_FIFO(struct FIFO * fifo_buf, unsigned char c)
+{
+    fifo_buf->buf[fifo_buf->end] = c;
+    if(++fifo_buf->end > FIFOSIZE - 1)
+        fifo_buf->end = 0;
+    if(fifo_buf->start == fifo_buf->end)
+    {
+        if(++fifo_buf->start > FIFOSIZE - 1)
+            fifo_buf->end = 0;
+    }
+}

@@ -69,7 +69,8 @@ $(SRC_DIR)/main.c \
 $(SRC_DIR)/max.c \
 $(SRC_DIR)/lcd.c \
 $(SRC_DIR)/eeprom.c \
-$(SRC_DIR)/timer.c
+$(SRC_DIR)/timer.c	\
+$(SRC_DIR)/i2c.c
 #$(SRC_DIR)/rtc.ñ \
 
 TEST_SERIAL_OBJ = $(TEST_SERIAL_SRC:.c=.rel)
