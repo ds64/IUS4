@@ -36,11 +36,9 @@ void SCANER_HANDLER() __interrupt ( 5 )
 
     if (tm % 1000 == 0)
     {
- //       BEEP();
         if (KB_SCAN_BIT(&ch))
         {
             PUSH_BUF(&io_kb_buff, ch);
- //       BEEP();
         }
     }
 
@@ -53,16 +51,10 @@ void SCANER_INIT()
 {
     tm = 0; // local key timer
     timer = 0; // Global timer
-    //TH0 = 0x60;
-    //TL0 = 0x00;
-    //TMOD |= 0x01;
-
-    //TCON |= 0x10;
 
     TH2 = 0x00;
     TL2 = 0x00;
     TR2 = 1; // Run Timer 2
-    //T2CON |= 0x80;
     INIT_BUF(&io_kb_buff);
     SetVector(0x202B, (void *) SCANER_HANDLER );
 }

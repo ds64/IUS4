@@ -8,4 +8,4 @@ unsigned long GetMsCounter();
 unsigned long DTimeMs(unsigned long t0);
 void DelayMs(unsigned long t);
 
-#endif _TIMER_H_
+#endif

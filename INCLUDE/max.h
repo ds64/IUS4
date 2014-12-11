@@ -16,4 +16,4 @@ void BEEP();
 void write_max( unsigned char xdata *regnum, unsigned char val );
 unsigned char read_max( unsigned char xdata *regnum );
 
-#endif _MAX_H_
+#endif

@@ -15,4 +15,4 @@ void lcd_display(unsigned char buf[][]);
 
 char * iconv4lcd(char * str);
 
-#endif _LCD_H_
+#endif

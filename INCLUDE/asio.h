@@ -6,4 +6,4 @@ char ASIO_READ(void);
 char ASIO_WCHAR(unsigned char ch);
 void ASIO_WSTRING(char * str);
 
-#endif _ASIO_H_
+#endif

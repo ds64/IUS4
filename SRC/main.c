@@ -28,12 +28,12 @@ unsigned char crc = 0xFF;
 
 unsigned char rotl(unsigned char value, char shift)
 {
-  return (value << shift) | (value >> (8 - shift));
+    return (value << shift) | (value >> (8 - shift));
 }
 
 unsigned char rotr(unsigned char value, char shift)
 {
-  return (value >> shift) | (value << (8 - shift));
+    return (value >> shift) | (value << (8 - shift));
 }
 
 void SET_LED(unsigned char value)
@@ -95,7 +95,7 @@ void lcdDisplayBuffer()
 
 void initAnim1()
 {
-    char i = 0;
+    unsigned char i = 0;
     unsigned char def = 0;
     for(i = 0; i < N1; i++)
     {
@@ -113,7 +113,7 @@ void initAnim1()
 
 void initAnim2()
 {
-    char i = 0;
+    unsigned char i = 0;
     char def1 = 0;
     char def2 = 0;
     for(i = 0; i < N2; i++)
@@ -133,7 +133,6 @@ void displayLEDAnim1()
 {
     int i = 0;
     unsigned int oldTimer = -1;
-    unsigned char tmp;
 
     initAnim1();
 
@@ -153,7 +152,6 @@ void displayLEDAnim2()
 {
     int i = 0;
     unsigned int oldTimer = -1;
-    unsigned char tmp;
 
     initAnim2();
 
@@ -306,9 +304,6 @@ void main(void)
     int mselOld = -1;
     int delim = 2; // Timer delimiter
     unsigned int oldTimer = -1;
-    unsigned short addr;
-    unsigned char N;
-    unsigned short size;
     int flag = 1;
 
     ASIO_INIT( SERIAL_SPEED );

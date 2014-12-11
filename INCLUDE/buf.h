@@ -27,4 +27,4 @@ void INIT_BUF(struct BUF * buffer);
 unsigned char POP_FIFO(struct FIFO * fifo_buf);
 void PUSH_FIFO(struct FIFO * fifo_buf, unsigned char c);
 
-#endif _BUF_H_
+#endif

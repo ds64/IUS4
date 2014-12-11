@@ -7,4 +7,4 @@ void SCANER_INIT();
 char READ_BUFFER(void);
 extern unsigned int timer;
 
-#endif _KEYS_H_
+#endif
