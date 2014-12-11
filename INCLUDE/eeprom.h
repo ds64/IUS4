@@ -1,13 +1,23 @@
-#ifndef _EEPROM_H_
-#define _EEPROM_H_
-#include "aduc812.h"
+#ifndef __EEPROM__H
+#define __EEPROM__H
 
-#define EEPROM_ADDRESS 0xA2
-#define EEPROM_SIZE 32768
+#define EEPROM_ADDRESS  0xA2
+#define EEPROM_SIZE     32768
 
-unsigned char ReadEEPROM(unsigned long addr, unsigned long size,
-                         unsigned char * buf);
-unsigned char WriteEEPROM(unsigned long addr, unsigned long size,
-                          unsigned char * buf);
+/*
+	„тение данных из EEPROM с возвратом результата выполнени€ операции:
+		addr Ц адрес €чейки пам€ти,
+		size Ц размер буфера дл€ чтени€, 
+		buf Ц буфер.
+*/
+extern bit ReadEEPROM(unsigned short address, unsigned char xdata *buf, unsigned short length);
 
-#endif _EEPROM_H_
+/*
+	«апись данных в EEPROM с возвратом результата выполнени€ операции:
+		addr Ц адрес €чейки пам€ти,
+		size Ц размер буфера записи, 
+		buf Ц буфер.
+*/
+extern bit WriteEEPROM( unsigned short address, unsigned char xdata *buf, unsigned short length );
+
+#endif

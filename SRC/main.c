@@ -4,6 +4,8 @@
 #include "buf.h"
 #include "max.h"
 #include "lcd.h"
+#include "eeprom.h"
+#include <string.h>
 
 #define SERIAL_SPEED 0xFD
 #define BUF_ROWS    2
@@ -16,6 +18,22 @@ xdata unsigned char buf[2][16];
 char x = 0, y = 0;
 char lcdDisplayBuffer_row = 0;
 unsigned char dips[8];
+unsigned char xdata anim1[8];
+unsigned char xdata anim2[4];
+
+unsigned char A, N1, D, S1, N2, S2;
+
+unsigned char crc = 0xFF;
+
+unsigned char rotl(unsigned char value, char shift)
+{
+  return (value << shift) | (value >> (8 - shift));
+}
+
+unsigned char rotr(unsigned char value, char shift)
+{
+  return (value >> shift) | (value << (8 - shift));
+}
 
 void SET_LED(unsigned char value)
 {
@@ -74,140 +92,252 @@ void lcdDisplayBuffer()
     EA = 1;
 }
 
-void wBs(char * str, char rn)
+void initAnim1()
 {
-    char i = 0;
-    while( *str )
-    {
-        buf[rn][i] = *str++;
-        i++;
+  char i = 0;
+  unsigned char def = 0;
+  for(i = 0; i < N1; i++)
+  {
+    def = (def << 1) | 0x01;
+  }
+  anim1[0] = rotl(def,2);
+  for(i = 1; i < 8; i++)
+  {
+    if(D == 0)
+      anim1[i] = rotl(anim1[i-1],1);
+    else
+      anim1[i] = rotr(anim1[i-1],1);
+  }
+}
+
+void initAnim2()
+{
+  char i = 0;
+  char def1 = 0;
+  char def2 = 0;
+  for(i = 0; i < N2; i++)
+  {
+    def1 = (def1 << 1) | 0x01;
+    def2 = (def2 >> 1) | 0x80;
+  }
+
+  anim2[0] = def1 | def2;
+  for(i = 1; i < 4; i++)
+  {
+    anim2[i] = rotl(anim2[i-1],1) | rotr(anim2[i-1],1);
+  }
+}
+
+void displayLEDAnim1() {
+    int i = 0;
+    unsigned int oldTimer = -1;
+    unsigned char tmp;
+
+    initAnim1();
+
+    while (1) {
+        if ((timer % S1 == 0) && (oldTimer != timer)) {
+            SET_LED(anim1[i]);
+            i++;
+            oldTimer = timer;
+        }
+        if (i > 7) break;
     }
 }
 
-void printUART()
-{
-    unsigned char dipVal;
-    char wbuffer[16];
+void displayLEDAnim2() {
+    int i = 0;
+    unsigned int oldTimer = -1;
+    unsigned char tmp;
 
-    dipVal = READ_DIP();
+    initAnim2();
 
-    ASIO_WSTRING("DIPs ");
-
-    wbuffer[0] = ((dipVal & 0x01)) + '0';
-    wbuffer[1] = ((dipVal & 0x02) >> 1) + '0';
-    wbuffer[2] = ((dipVal & 0x04) >> 2) + '0';
-    wbuffer[3] = ((dipVal & 0x08) >> 3) + '0';
-    wbuffer[4] = ((dipVal & 0x10) >> 4) + '0';
-    wbuffer[5] = ((dipVal & 0x20) >> 5) + '0';
-    wbuffer[6] = ((dipVal & 0x40) >> 6) + '0';
-    wbuffer[7] = ((dipVal & 0x80) >> 7) + '0';
-    wbuffer[8] = '\n';
-
-    ASIO_WSTRING(wbuffer);
-
-    ASIO_WSTRING("TIME ");
-
-    wbuffer[4] = timer % 10 + '0';
-    wbuffer[3] = (timer / 10) % 10 + '0';
-    wbuffer[2] = (timer / 100) % 10 + '0';
-    wbuffer[1] = (timer / 1000) % 10 + '0';
-    wbuffer[0] = (timer / 10000) % 10 + '0';
-    wbuffer[5] = ' ';
-    wbuffer[6] = ' ';
-    wbuffer[7] = ' ';
-    wbuffer[8] = '\n';
-
-    ASIO_WSTRING(wbuffer);
-
-    ASIO_WSTRING("TL0 ");
-
-    wbuffer[4] = TL0 % 10 + '0';
-    wbuffer[3] = (TL0 / 10) % 10 + '0';
-    wbuffer[2] = (TL0 / 100) % 10 + '0';
-    wbuffer[1] = (TL0 / 1000) % 10 + '0';
-    wbuffer[0] = (TL0 / 10000) % 10 + '0';
-    wbuffer[5] = ' ';
-    wbuffer[6] = ' ';
-    wbuffer[7] = ' ';
-    wbuffer[8] = '\n';
-
-    ASIO_WSTRING(wbuffer);
+    while (1) {
+        if ((timer % S2 == 0) && (oldTimer != timer)) {
+            //tmp = stab(anim1[i], N);
+            SET_LED(anim2[i]);
+            i++;
+            oldTimer = timer;
+        }
+        if (i > (4-N2)) break;
+    }
+    i = 0;
+    while (1) {
+      if ((timer % S2 == 0) && (oldTimer != timer)) {
+        //tmp = stab(anim1[i], N);
+        SET_LED(anim2[4-N2-i]);
+        i++;
+        oldTimer = timer;
+      }
+      if (i > (4-N2)) break;
+    }
 }
 
-void lcdDisplayBufferDips()
-{
-    unsigned char dipVal;
 
-    dipVal = READ_DIP();
+void runAnim() {
+	char uCh = 0;
+	char kCh = 0;
 
-    lcd_clear();
+	while(1) {
+		kCh = READ_BUFFER();
+        uCh = ASIO_READ();
+        if ((kCh == 0) && (uCh == 0)) {
+        	if (!A) displayLEDAnim1();
+        	else displayLEDAnim2();
+        }
+        else break;
+	}
+
+}
+
+void showParams() {
+	lcd_clear();
     cleanBuffer();
 
-    buf[0][0] = 'D';
-    buf[0][1] = 'I';
-    buf[0][2] = 'P';
-    buf[0][3] = 's';
-
-    buf[1][0] = ((dipVal & 0x01)) + '0';
-    buf[1][1] = ((dipVal & 0x02) >> 1) + '0';
-    buf[1][2] = ((dipVal & 0x04) >> 2) + '0';
-    buf[1][3] = ((dipVal & 0x08) >> 3) + '0';
-    buf[1][4] = ((dipVal & 0x10) >> 4) + '0';
-    buf[1][5] = ((dipVal & 0x20) >> 5) + '0';
-    buf[1][6] = ((dipVal & 0x40) >> 6) + '0';
-    buf[1][7] = ((dipVal & 0x80) >> 7) + '0';
+    if(A == 0)
+    {
+      strcpy(buf[0], "A   N   D   S");
+      buf[1][0] = A + '0';
+      buf[1][3] = N1 + '0';
+      buf[1][7] = D + '0';
+      buf[1][10] = S1 + '0';
+    }
+    else
+    {
+      strcpy(buf[0], "A   N   S");
+      buf[1][0] = A + '0';
+      buf[1][3] = N2 + '0';
+      buf[1][7] = S2 + '0';
+    }
 
     lcdDisplayBuffer();
 }
 
-void lcdDisplayBufferTime()
+unsigned char xdata CRC8(unsigned char xdata *pMas, unsigned char buf_len)
 {
-    lcd_clear();
-    cleanBuffer();
+    unsigned char i;
 
-    buf[0][0] = 'S';
-    buf[0][1] = 'Y';
-    buf[0][2] = 'S';
-    buf[0][4] = 'T';
-    buf[0][5] = 'i';
-    buf[0][6] = 'm';
-    buf[0][7] = 'e';
+    crc = 0xFF;
 
-    buf[1][4] = timer % 10 + '0';
-    buf[1][3] = (timer / 10) % 10 + '0';
-    buf[1][2] = (timer / 100) % 10 + '0';
-    buf[1][1] = (timer / 1000) % 10 + '0';
-    buf[1][0] = (timer / 10000) % 10 + '0';
+    while (buf_len--)
+	  {
+        crc ^= *pMas++;
+        for (i = 0; i < 8; i++)
+        {
+            for (i = 0; i < 8; i++)
+            {
+                crc = crc & 0x80 ? (crc << 1) ^ 0x31 : crc << 1;
+            }
+		    }
+    }
 
-    lcdDisplayBuffer();
+    return crc;
 }
 
-void lcdDisplayBufferTH0()
+void readEE()
 {
-    lcd_clear();
-    cleanBuffer();
+	  unsigned short addr = 0;
+    unsigned char xdata *b1;
+    unsigned char xdata *b2;
+    static unsigned char xdata crc8;
 
-    buf[0][0] = 'T';
-    buf[0][1] = 'L';
+    // A (0)
+    ReadEEPROM(100,b1,6);
+    ASIO_WSTRING(b1);
+    strcpy(b1, "ANSHA\0");
+    WriteEEPROM(100,b1,6);
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
 
-    buf[1][4] = TL0 % 10 + '0';
-    buf[1][3] = (TL0 / 10) % 10 + '0';
-    buf[1][2] = (TL0 / 100) % 10 + '0';
-    buf[1][1] = (TL0 / 1000) % 10 + '0';
-    buf[1][0] = (TL0 / 10000) % 10 + '0';
+    // igithuf (crc8 == *b1)
+    // {
+    //   A = *b1;
+    // } else A = 1;
 
-    lcdDisplayBuffer();
+    A = *b1;
+
+    // N1 (2)
+    addr += 2;
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
+
+    if (crc8 == *b1) {
+    	N1 = *b1;
+    } else N1 = 2;
+
+    // D (4)
+    addr += 2;
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
+
+    if (crc8 == *b1) {
+    	D = *b1;
+    } else D = 0;
+
+    // S1 (6)
+    addr += 2;
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
+
+    if (crc8 == *b1) {
+    	S1 = *b1;
+    } else S1 = 1;
+
+    // N2 (8)
+    addr += 2;
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
+
+    if (crc8 == *b1) {
+    	N2 = *b1;
+    } else N2 = 1;
+
+    // S2 (10)
+    addr += 2;
+    ReadEEPROM(addr, b1, 1);
+    ReadEEPROM(addr + 1, b2, 1);
+    crc8 = CRC8(b1, 1);
+
+    if (crc8 == *b1) {
+    	S2 = *b1;
+    } else S2 = 1;
+}
+
+void writeEE(unsigned char xdata* bbb, unsigned long addr)
+{
+    WriteEEPROM(addr, bbb, 1);
+    WriteEEPROM(addr + 1, &(CRC8(bbb, 1)), 1);
+}
+
+void clearEE() {
+	unsigned long addr;
+	unsigned char xdata *b1;
+	b1 = 0;
+	for (addr = 0 ; addr < 12; addr ++) {
+		WriteEEPROM(addr, b1, 1);
+		WriteEEPROM(addr, b1 + 1, 1);
+	}
 }
 
 void main(void)
 {
-    char ch = 0;
+    char kCh = 0;
+    char uCh = 0;
     int isManualMode = 0;
     int tsel = 0; // Timed mode type selector
     int msel = 0; // Manual mode type selector
     int mselOld = -1;
     int delim = 2; // Timer delimiter
     unsigned int oldTimer = -1;
+    unsigned short addr;
+    unsigned char N;
+    unsigned short size;
+    int flag = 1;
 
     ASIO_INIT( SERIAL_SPEED );
     SCANER_INIT();
@@ -215,105 +345,69 @@ void main(void)
     ET2 = 1; // Timer 2 interrupts enabled
     ES = 1; // UART interrupts enabled
 
-    // Timer 0
-    TL0 = 0; // Clean Timer 0
-    TH0 = 0;
-    TMOD |= 0x05; // Timer 0 external event mode
-    TR0 = 1; // Run Timer 0
-    //ET0 = 1; // Timer 0 interrupts
-
     EA = 1; // Enable all interrups
+    addr = 1;
+    size = 5;
 
-    while (1)
-    {
-        if (TL0 >= 1)
-        {
-                lcd_clear();
-                cleanBuffer();
+    readEE();
 
-                buf[0][0] = 'J';
-                buf[1][0] = 'J';
-                lcdDisplayBuffer();
-        }
-        ch = READ_BUFFER();
-        if (ch != 0)
-        {
-            if (ch == 'D')
-            {
-                if (isManualMode)
-                    isManualMode = 0;
-                else isManualMode = 1;
-            }
-            // Mnual mode type select
-            else if ((ch == '#') && (isManualMode))
-            {
-                msel ++;
-                if (msel > 2)
-                    msel = 0;
-            }
+    while (1) {
 
-            // Change of timer delimiter for auto mode
-            else if ((ch == 'A') && (isManualMode))
-            {
-                delim++;
-                if (delim > 10)
-                    delim = 10;
-            }
-            else if ((ch == 'B') && (isManualMode))
-            {
-                delim--;
-                if (delim < 2)
-                delim = 2;
-            }
+        if(flag)
+        {
+          showParams();
+          flag = 0;
         }
+        kCh = READ_BUFFER();
+        uCh = ASIO_READ();
 
-        // Manual mode
-        if (isManualMode)
-        {
-            if ((msel == 0) && (mselOld != msel))
-            {
-                lcdDisplayBufferTime();
-                mselOld = msel;
+        if ((kCh != 0) || (uCh != 0)) {
+            if ((kCh == 'A') || (uCh == 'a')) {
+            	if (A) A = 0; else A = 1;
+            	writeEE(A, 0);
+              flag = 1;
             }
-            else if ((msel == 1) && (mselOld != msel))
-            {
-                lcdDisplayBufferDips();
-                mselOld = msel;
+            else if ((kCh == 'D') || (uCh == 'd')) {
+            	if (!A) {
+            		if (D) D = 0; else D = 1;
+            		writeEE(D, 4);
+            	}
+              flag = 1;
             }
-            else if (mselOld != msel)
-            {
-                lcdDisplayBufferTH0();
-                mselOld = msel;
+            else if ((kCh == 'B') || uCh == 'n') {
+            	if (!A) {
+            		N1++;
+            		if (N1 > 7) N1 = 1;
+            		writeEE(N1, 2);
+            	}
+            	else {
+            		N2++;
+            		if (N2 > 3) N2 = 1;
+            		writeEE(N2, 8);
+            	}
+              flag = 1;
             }
-        }
-        // Auto mode
-        else if ((timer % delim == 0) && (timer != oldTimer))
-        {
-            // System Time
-            if (tsel == 0)
-            {
-                lcdDisplayBufferTime();
-                oldTimer = timer;
-                tsel++;
+            else if ((kCh == 'C') || uCh == 's') {
+            	if (!A) {
+            		S1++;
+            		if (S1 > 9) S1 = 1;
+            		writeEE(S1, 6);
+            	}
+            	else {
+            		S2++;
+            		if (S2 > 9) S2 = 1;
+            		writeEE(S2, 10);
+            	}
+              flag = 1;
             }
-            // DIPs
-            else if (tsel == 1)
-            {
-                lcdDisplayBufferDips();
-                oldTimer = timer;
-                tsel++;
+            else if ((kCh == '#') || uCh == '#') {
+              flag = 1;
+            	clearEE();
             }
-            // TH0
-            else
-            {
-                lcdDisplayBufferTH0();
-                oldTimer = timer;
-                tsel = 0;
+            else if ((kCh == '*') || uCh == '*') {
+              flag = 1;
+            	runAnim();
             }
-        }
-        if ((timer % 10 == 0) && (timer != oldTimer))
-        {
-            printUART();
         }
     }
 }
