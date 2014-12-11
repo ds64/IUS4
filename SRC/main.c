@@ -21,7 +21,8 @@ unsigned char dips[8];
 unsigned char xdata anim1[8];
 unsigned char xdata anim2[4];
 
-unsigned char A, N1, D, S1, N2, S2;
+unsigned char xdata A, N1, D, S1, N2, S2;
+unsigned char xdata dat[7];
 
 unsigned char crc = 0xFF;
 
@@ -228,7 +229,7 @@ unsigned char xdata CRC8(unsigned char xdata *pMas, unsigned char buf_len)
             {
                 crc = crc & 0x80 ? (crc << 1) ^ 0x31 : crc << 1;
             }
-		    }
+		}
     }
 
     return crc;
@@ -236,82 +237,37 @@ unsigned char xdata CRC8(unsigned char xdata *pMas, unsigned char buf_len)
 
 void readEE()
 {
-	  unsigned short addr = 0;
-    unsigned char xdata *b1;
-    unsigned char xdata *b2;
-    static unsigned char xdata crc8;
+    unsigned char crc;
 
-    // A (0)
-    ReadEEPROM(100,b1,6);
-    ASIO_WSTRING(b1);
-    strcpy(b1, "ANSHA\0");
-    WriteEEPROM(100,b1,6);
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    // igithuf (crc8 == *b1)
-    // {
-    //   A = *b1;
-    // } else A = 1;
-
-    A = *b1;
-
-    // N1 (2)
-    addr += 2;
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    if (crc8 == *b1) {
-    	N1 = *b1;
-    } else N1 = 2;
-
-    // D (4)
-    addr += 2;
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    if (crc8 == *b1) {
-    	D = *b1;
-    } else D = 0;
-
-    // S1 (6)
-    addr += 2;
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    if (crc8 == *b1) {
-    	S1 = *b1;
-    } else S1 = 1;
-
-    // N2 (8)
-    addr += 2;
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    if (crc8 == *b1) {
-    	N2 = *b1;
-    } else N2 = 1;
-
-    // S2 (10)
-    addr += 2;
-    ReadEEPROM(addr, b1, 1);
-    ReadEEPROM(addr + 1, b2, 1);
-    crc8 = CRC8(b1, 1);
-
-    if (crc8 == *b1) {
-    	S2 = *b1;
-    } else S2 = 1;
+    ReadEEPROM(0, dat, 7);
+    A = dat[0];
+    N1 = dat[1];
+    D = dat[2];
+    S1 = dat[3];
+    N2 = dat[4];
+    S2 = dat[5];
+    
+    crc = CRC8(&dat[0], 6);
+    //ASIO_WSTRING(&crc);
+    //ASIO_WSTRING(&dat[6]);
+    if (crc != dat[6]) {
+    	A = 1; N1 = 2; D = 1; S1 = 2; N2 = 2; S2 = 3;
+    }
 }
 
-void writeEE(unsigned char xdata* bbb, unsigned long addr)
+void writeEE()
 {
-    WriteEEPROM(addr, bbb, 1);
-    WriteEEPROM(addr + 1, &(CRC8(bbb, 1)), 1);
+    dat[0] = A;
+    dat[1] = N1;
+    dat[2] = D;
+    dat[3] = S1;
+    dat[4] = N2;
+    dat[5] = S2;
+    dat[6] = CRC8(&dat[0], 6);
+
+    ASIO_WSTRING(&dat[6]);
+
+    WriteEEPROM(0, dat, 7);
 }
 
 void clearEE() {
@@ -344,18 +300,15 @@ void main(void)
 
     ET2 = 1; // Timer 2 interrupts enabled
     ES = 1; // UART interrupts enabled
-
     EA = 1; // Enable all interrups
-    addr = 1;
-    size = 5;
-
+    
     readEE();
-
     while (1) {
 
         if(flag)
         {
           showParams();
+          writeEE();
           flag = 0;
         }
         kCh = READ_BUFFER();
@@ -364,13 +317,11 @@ void main(void)
         if ((kCh != 0) || (uCh != 0)) {
             if ((kCh == 'A') || (uCh == 'a')) {
             	if (A) A = 0; else A = 1;
-            	writeEE(A, 0);
               flag = 1;
             }
             else if ((kCh == 'D') || (uCh == 'd')) {
             	if (!A) {
             		if (D) D = 0; else D = 1;
-            		writeEE(D, 4);
             	}
               flag = 1;
             }
@@ -378,12 +329,10 @@ void main(void)
             	if (!A) {
             		N1++;
             		if (N1 > 7) N1 = 1;
-            		writeEE(N1, 2);
             	}
             	else {
             		N2++;
             		if (N2 > 3) N2 = 1;
-            		writeEE(N2, 8);
             	}
               flag = 1;
             }
@@ -391,12 +340,10 @@ void main(void)
             	if (!A) {
             		S1++;
             		if (S1 > 9) S1 = 1;
-            		writeEE(S1, 6);
             	}
             	else {
             		S2++;
             		if (S2 > 9) S2 = 1;
-            		writeEE(S2, 10);
             	}
               flag = 1;
             }
@@ -409,5 +356,7 @@ void main(void)
             	runAnim();
             }
         }
+
+        
     }
 }
