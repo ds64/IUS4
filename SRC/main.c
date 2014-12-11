@@ -95,49 +95,52 @@ void lcdDisplayBuffer()
 
 void initAnim1()
 {
-  char i = 0;
-  unsigned char def = 0;
-  for(i = 0; i < N1; i++)
-  {
-    def = (def << 1) | 0x01;
-  }
-  anim1[0] = rotl(def,2);
-  for(i = 1; i < 8; i++)
-  {
-    if(D == 0)
-      anim1[i] = rotl(anim1[i-1],1);
-    else
-      anim1[i] = rotr(anim1[i-1],1);
-  }
+    char i = 0;
+    unsigned char def = 0;
+    for(i = 0; i < N1; i++)
+    {
+        def = (def << 1) | 0x01;
+    }
+    anim1[0] = rotl(def,2);
+    for(i = 1; i < 8; i++)
+    {
+        if(D == 0)
+            anim1[i] = rotl(anim1[i-1],1);
+        else
+            anim1[i] = rotr(anim1[i-1],1);
+    }
 }
 
 void initAnim2()
 {
-  char i = 0;
-  char def1 = 0;
-  char def2 = 0;
-  for(i = 0; i < N2; i++)
-  {
-    def1 = (def1 << 1) | 0x01;
-    def2 = (def2 >> 1) | 0x80;
-  }
+    char i = 0;
+    char def1 = 0;
+    char def2 = 0;
+    for(i = 0; i < N2; i++)
+    {
+        def1 = (def1 << 1) | 0x01;
+        def2 = (def2 >> 1) | 0x80;
+    }
 
-  anim2[0] = def1 | def2;
-  for(i = 1; i < 4; i++)
-  {
-    anim2[i] = rotl(anim2[i-1],1) | rotr(anim2[i-1],1);
-  }
+    anim2[0] = def1 | def2;
+    for(i = 1; i < 4; i++)
+    {
+        anim2[i] = rotl(anim2[i-1],1) | rotr(anim2[i-1],1);
+    }
 }
 
-void displayLEDAnim1() {
+void displayLEDAnim1()
+{
     int i = 0;
     unsigned int oldTimer = -1;
     unsigned char tmp;
 
     initAnim1();
 
-    while (1) {
-        if ((timer % S1 == 0) && (oldTimer != timer)) {
+    while (1)
+    {
+        if ((timer % S1 == 0) && (oldTimer != timer))
+        {
             SET_LED(anim1[i]);
             i++;
             oldTimer = timer;
@@ -146,16 +149,18 @@ void displayLEDAnim1() {
     }
 }
 
-void displayLEDAnim2() {
+void displayLEDAnim2()
+{
     int i = 0;
     unsigned int oldTimer = -1;
     unsigned char tmp;
 
     initAnim2();
 
-    while (1) {
-        if ((timer % S2 == 0) && (oldTimer != timer)) {
-            //tmp = stab(anim1[i], N);
+    while (1)
+    {
+        if ((timer % S2 == 0) && (oldTimer != timer))
+        {
             SET_LED(anim2[i]);
             i++;
             oldTimer = timer;
@@ -163,36 +168,40 @@ void displayLEDAnim2() {
         if (i > (4-N2)) break;
     }
     i = 0;
-    while (1) {
-      if ((timer % S2 == 0) && (oldTimer != timer)) {
-        //tmp = stab(anim1[i], N);
-        SET_LED(anim2[4-N2-i]);
-        i++;
-        oldTimer = timer;
-      }
-      if (i > (4-N2)) break;
+    while (1)
+    {
+        if ((timer % S2 == 0) && (oldTimer != timer))
+        {
+            SET_LED(anim2[4-N2-i]);
+            i++;
+            oldTimer = timer;
+        }
+        if (i > (4-N2)) break;
     }
 }
 
 
-void runAnim() {
-	char uCh = 0;
-	char kCh = 0;
+void runAnim()
+{
+  	char uCh = 0;
+  	char kCh = 0;
 
-	while(1) {
-		kCh = READ_BUFFER();
+  	while(1)
+    {
+    	  kCh = READ_BUFFER();
         uCh = ASIO_READ();
-        if ((kCh == 0) && (uCh == 0)) {
-        	if (!A) displayLEDAnim1();
-        	else displayLEDAnim2();
+        if ((kCh == 0) && (uCh == 0))
+        {
+            if (!A) displayLEDAnim1();
+            else displayLEDAnim2();
         }
         else break;
-	}
-
+  	}
 }
 
-void showParams() {
-	lcd_clear();
+void showParams()
+{
+	  lcd_clear();
     cleanBuffer();
 
     if(A == 0)
@@ -229,7 +238,7 @@ unsigned char xdata CRC8(unsigned char xdata *pMas, unsigned char buf_len)
             {
                 crc = crc & 0x80 ? (crc << 1) ^ 0x31 : crc << 1;
             }
-		}
+		    }
     }
 
     return crc;
@@ -246,12 +255,17 @@ void readEE()
     S1 = dat[3];
     N2 = dat[4];
     S2 = dat[5];
-    
+
     crc = CRC8(&dat[0], 6);
-    //ASIO_WSTRING(&crc);
-    //ASIO_WSTRING(&dat[6]);
-    if (crc != dat[6]) {
-    	A = 1; N1 = 2; D = 1; S1 = 2; N2 = 2; S2 = 3;
+
+    if (crc != dat[6])
+    {
+    	 A = 1;
+       N1 = 2;
+       D = 1;
+       S1 = 2;
+       N2 = 2;
+       S2 = 3;
     }
 }
 
@@ -270,14 +284,16 @@ void writeEE()
     WriteEEPROM(0, dat, 7);
 }
 
-void clearEE() {
-	unsigned long addr;
-	unsigned char xdata *b1;
-	b1 = 0;
-	for (addr = 0 ; addr < 12; addr ++) {
-		WriteEEPROM(addr, b1, 1);
-		WriteEEPROM(addr, b1 + 1, 1);
-	}
+void clearEE()
+{
+  	unsigned long addr;
+  	unsigned char xdata *b1;
+  	b1 = 0;
+  	for (addr = 0 ; addr < 12; addr ++)
+    {
+    		WriteEEPROM(addr, b1, 1);
+    		WriteEEPROM(addr, b1 + 1, 1);
+  	}
 }
 
 void main(void)
@@ -301,62 +317,73 @@ void main(void)
     ET2 = 1; // Timer 2 interrupts enabled
     ES = 1; // UART interrupts enabled
     EA = 1; // Enable all interrups
-    
-    readEE();
-    while (1) {
 
+    readEE();
+    while (1)
+    {
         if(flag)
         {
-          showParams();
-          writeEE();
-          flag = 0;
+            showParams();
+            writeEE();
+            flag = 0;
         }
+
         kCh = READ_BUFFER();
         uCh = ASIO_READ();
 
-        if ((kCh != 0) || (uCh != 0)) {
-            if ((kCh == 'A') || (uCh == 'a')) {
-            	if (A) A = 0; else A = 1;
-              flag = 1;
+        if ((kCh != 0) || (uCh != 0))
+        {
+            if ((kCh == 'A') || (uCh == 'a'))
+            {
+              	if (A) A = 0; else A = 1;
+                flag = 1;
             }
-            else if ((kCh == 'D') || (uCh == 'd')) {
-            	if (!A) {
-            		if (D) D = 0; else D = 1;
-            	}
-              flag = 1;
+            else if ((kCh == 'D') || (uCh == 'd'))
+            {
+              	if (!A)
+                {
+              		  if (D) D = 0; else D = 1;
+              	}
+                flag = 1;
             }
-            else if ((kCh == 'B') || uCh == 'n') {
-            	if (!A) {
-            		N1++;
-            		if (N1 > 7) N1 = 1;
-            	}
-            	else {
-            		N2++;
-            		if (N2 > 3) N2 = 1;
-            	}
-              flag = 1;
+            else if ((kCh == 'B') || uCh == 'n')
+            {
+              	if (!A)
+                {
+                		N1++;
+                		if (N1 > 7) N1 = 1;
+              	}
+              	else
+                {
+                		N2++;
+                		if (N2 > 3) N2 = 1;
+              	}
+                flag = 1;
             }
-            else if ((kCh == 'C') || uCh == 's') {
-            	if (!A) {
-            		S1++;
-            		if (S1 > 9) S1 = 1;
-            	}
-            	else {
-            		S2++;
-            		if (S2 > 9) S2 = 1;
-            	}
-              flag = 1;
+            else if ((kCh == 'C') || uCh == 's')
+            {
+              	if (!A)
+                {
+                		S1++;
+                		if (S1 > 9) S1 = 1;
+              	}
+              	else
+                {
+                		S2++;
+                		if (S2 > 9) S2 = 1;
+              	}
+                flag = 1;
             }
-            else if ((kCh == '#') || uCh == '#') {
-              flag = 1;
-            	clearEE();
+            else if ((kCh == '#') || uCh == '#')
+            {
+                flag = 1;
+              	clearEE();
             }
-            else if ((kCh == '*') || uCh == '*') {
-              flag = 1;
-            	runAnim();
+            else if ((kCh == '*') || uCh == '*')
+            {
+                flag = 1;
+              	runAnim();
             }
         }
-
-        
     }
 }
