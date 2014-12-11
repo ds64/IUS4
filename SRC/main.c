@@ -277,21 +277,20 @@ void writeEE()
     dat[5] = S2;
     dat[6] = CRC8(&dat[0], 6);
 
-    ASIO_WSTRING(&dat[6]);
-
     WriteEEPROM(0, dat, 7);
 }
 
 void clearEE()
 {
-  	unsigned long addr;
-  	unsigned char xdata *b1;
-  	b1 = 0;
-  	for (addr = 0 ; addr < 12; addr ++)
-    {
-    		WriteEEPROM(addr, b1, 1);
-    		WriteEEPROM(addr, b1 + 1, 1);
-  	}
+    dat[0] = 0;
+    dat[1] = 0;
+    dat[2] = 0;
+    dat[3] = 0;
+    dat[4] = 0;
+    dat[5] = 0;
+    dat[6] = 1;
+
+    WriteEEPROM(0, dat, 7);
 }
 
 void main(void)
